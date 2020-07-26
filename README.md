@@ -1,2 +1,2 @@
 # bgpaf
-BGP Automatic Filtering
+BGP AF
