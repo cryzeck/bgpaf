@@ -1,7 +1,7 @@
 package main
 
 import (
-    "fmt"
+  "fmt"
 	"log"
 	"os"
 	"bufio"
@@ -10,28 +10,29 @@ import (
 	"net/http"
 	"gopkg.in/yaml.v2"
 )
+
 type Config struct {
-	Host 	string	`yaml:"host"`
+  Host 	  string	`yaml:"host"`
 	Port    string	`yaml:"port"`
-	Path	string	`yaml:"path"`
+	Path	  string	`yaml:"path"`
 	ApiKey	string	`yaml:"apikey"`
 }
 
 func ReadConfig(configPath string) (*Config, error) {
-    config := &Config{}
+  config := &Config{}
 
-    file, err := os.Open(configPath)
-    if err != nil {
-        return nil, err
-    }
-    defer file.Close()
+  file, err := os.Open(configPath)
+  if err != nil {
+    return nil, err
+  }
+  defer file.Close()
 
-    d := yaml.NewDecoder(file)
+  d := yaml.NewDecoder(file)
 
-    if err := d.Decode(&config); err != nil {
-        return nil, err
-    }
-    return config, nil
+  if err := d.Decode(&config); err != nil {
+    return nil, err
+  }
+  return config, nil
 }
 
 func CreatePolicies(input []string) []string {
@@ -60,29 +61,27 @@ func ReadInput() []string{
 }
 
 func main() {
-	
 	cfg, err := ReadConfig("./config.yaml")
     if err != nil {
         log.Fatal(err)
 	}
-	
 	// Printing config for testing
 	fmt.Println(cfg)
 	var joined string;
 
 	lines := ReadInput()
-  	policies := CreatePolicies(lines)
+  policies := CreatePolicies(lines)
 	joined = strings.Join(policies, ",")
 	joined = "[" + joined + "]"
 
-  	url := url.URL {
+  url := url.URL {
 		Scheme: "https",
 		Host: cfg.Host+":"+cfg.Port,
 		Path: cfg.Path,
 	}
 	fmt.Println(url.String())
-	
-  	resp, err := http.PostForm(url.String(), url.Values {
+
+  resp, err := http.PostForm(url.String(), url.Values {
 		"data": joined,
 		"key": cfg.ApiKey,
 	})
