@@ -5,9 +5,10 @@ import (
   "log"
   "os"
   "bufio"
-  "strings"
+  "encoding/json"
   "net/url"
   "net/http"
+  "strings"
   "gopkg.in/yaml.v2"
 )
 
@@ -35,10 +36,31 @@ func ReadConfig(configPath string) (*Config, error) {
   return config, nil
 }
 
-func CreatePolicies(input []string) []string {
-  var policies []string
+type policy struct {
+  Op      string
+  Path    []string
+  Value   string
+}
+
+func CreatePolicies(input []string) []*policy {
+  policies := []*policy{}
+  del := new(policy)
+  del.Op = "delete"
+  del.Path = []string{"policy", "prefix-list"}
+  del.Value = "test-list"
+  policies = append(policies, del)
+
   for i := 0; i < len(input); i++ {
-    policies = append(policies, `"{"op": "set", "path":["policy", "prefix-list6", "test-list", "rule", " + i + 1 + ", "prefix"], "value": "` + input[i] + `"}`)
+    pol := new(policy)
+    per := new(policy)
+    pol.Op = "set"
+    pol.Path = []string{"policy", "prefix-list", "test-list", "rule", fmt.Sprintf("%d", i+1), "action"}
+    pol.Value = "permit"
+    policies = append(policies, pol)
+    per.Op = "set"
+    per.Path = []string{"policy", "prefix-list", "test-list", "rule", fmt.Sprintf("%d", i+1), "prefix"}
+    per.Value = input[i]
+    policies = append(policies, per)
   }
   return policies
 }
@@ -62,29 +84,33 @@ func main() {
     log.Fatal(err)
   }
 
-  // Printing config for testing
-  fmt.Println(cfg)
-  var joined string;
-
   lines := ReadInput()
-  policies := CreatePolicies(lines)
-  joined = strings.Join(policies, ",")
-  joined = "[" + joined + "]"
+  e, err := json.Marshal(CreatePolicies(lines))
+  if err != nil {
+    log.Fatal(err)
+  }
 
-  url := url.URL {
+  myurl := url.URL {
     Scheme: "https",
     Host: cfg.Host+":"+cfg.Port,
     Path: cfg.Path,
   }
-  fmt.Println(url.String())
 
-  resp, err := http.PostForm(url.String(), url.Values {
-	  "data": joined,
-	  "key": cfg.ApiKey,
-  })
+  data := url.Values{}
+  data.Set("data", strings.ToLower(string(e)))
+  data.Set("key", cfg.ApiKey)
+
+  fmt.Println(myurl.String())
+
+  resp, err := http.PostForm(myurl.String(), data)
+
+  fmt.Println(data)
 
   if err != nil {
     log.Fatal(err)
+  }
+  if resp == nil {
+    fmt.Println("No response?")
   }
 
   fmt.Println(resp)

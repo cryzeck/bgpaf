@@ -1,5 +1,4 @@
-# config.yml
-host: 127.0.0.1
-port: 8080
-apikey: secret
+host: 
+port: 
+apikey: 
 path: /configure
