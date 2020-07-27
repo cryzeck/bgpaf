@@ -1,4 +1,5 @@
-host: 
-port: 
-apikey: 
-path: /configure
+irrdb: "rr.ntt.net:43"
+host: 1.2.3.4
+port: 1234
+apikey: "mysecretkey"
+peers: ['AS49271', 'AS-BAKE']
