@@ -47,6 +47,7 @@ type policy struct {
 func NewPolicy(op string, path ...string) *policy {
 	return &policy{op, path, ""}
 }
+
 func (p *policy) SetValue(value string) *policy {
 	p.Value = value
 	return p
@@ -60,20 +61,20 @@ func (p *policy) CloneExtend(path ...string) *policy {
 }
 
 func CreatePolicies(input []string) []*policy {
-	lis := make([]*policy, 0, len(input)*2+1)
-	lis = append(lis, NewPolicy("delete", "policy", "prefix-list").SetValue("test-list"))
+	policies := make([]*policy, 0, len(input)*2+1)
+	policies = append(policies, NewPolicy("delete", "policy", "prefix-list").SetValue("test-list"))
 
 	rule := NewPolicy("set", "policy", "prefix-list", "test-list", "rule")
 	for i, value := range input {
 		key := strconv.Itoa(i + 1)
 
-		lis = append(lis,
+		policies = append(policies,
 			rule.CloneExtend(key, "action").SetValue("permit"),
 			rule.CloneExtend(key, "prefix").SetValue(value),
 		)
 	}
 
-	return lis
+	return policies
 }
 
 func ReadInput() []string {
