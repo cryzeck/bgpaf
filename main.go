@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -37,31 +39,41 @@ func ReadConfig(configPath string) (*Config, error) {
 }
 
 type policy struct {
-	Op    string
-	Path  []string
-	Value string
+	Op    string   `json:"op"`
+	Path  []string `json:"path"`
+	Value string   `json:"value"`
+}
+
+func NewPolicy(op string, path ...string) *policy {
+	return &policy{op, path, ""}
+}
+
+func (p *policy) SetValue(value string) *policy {
+	p.Value = value
+	return p
+}
+
+func (p *policy) CloneExtend(path ...string) *policy {
+	lis := make([]string, len(p.Path)+len(path))
+	copy(lis, p.Path)
+	copy(lis[len(p.Path):], path)
+	return &policy{p.Op, lis, p.Value}
 }
 
 func CreatePolicies(input []string) []*policy {
-	policies := []*policy{}
-	del := new(policy)
-	del.Op = "delete"
-	del.Path = []string{"policy", "prefix-list"}
-	del.Value = "test-list"
-	policies = append(policies, del)
+	policies := make([]*policy, 0, len(input)*2+1)
+	policies = append(policies, NewPolicy("delete", "policy", "prefix-list").SetValue("test-list"))
 
-	for i := 0; i < len(input); i++ {
-		pol := new(policy)
-		per := new(policy)
-		pol.Op = "set"
-		pol.Path = []string{"policy", "prefix-list", "test-list", "rule", fmt.Sprintf("%d", i+1), "action"}
-		pol.Value = "permit"
-		policies = append(policies, pol)
-		per.Op = "set"
-		per.Path = []string{"policy", "prefix-list", "test-list", "rule", fmt.Sprintf("%d", i+1), "prefix"}
-		per.Value = input[i]
-		policies = append(policies, per)
+	rule := NewPolicy("set", "policy", "prefix-list", "test-list", "rule")
+	for i, value := range input {
+		key := strconv.Itoa(i + 1)
+
+		policies = append(policies,
+			rule.CloneExtend(key, "action").SetValue("permit"),
+			rule.CloneExtend(key, "prefix").SetValue(value),
+		)
 	}
+
 	return policies
 }
 
