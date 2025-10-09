@@ -1,0 +1,24 @@
+# Generated on {{ generated_at }} for {{ peer.name }} (AS{{ peer.asn }})
+{% if peer.peeringdb_name %}# PeeringDB entry: {{ peer.peeringdb_name }}{% endif %}
+{% if has_ipv4 %}
+/routing filter rule remove [find chain={{ peer_identifier }}-v4]
+{% for prefix in prefixes_v4 %}/routing filter rule add chain={{ peer_identifier }}-v4 rule="if (afi ipv4 && dst in {{ prefix }}) { accept; }"
+{% endfor %}/routing filter rule add chain={{ peer_identifier }}-v4 rule="if (afi ipv4) { reject; }"
+{% else %}
+# No IPv4 prefixes returned from IRR for {{ peer.as_set }}
+{% endif %}
+{% if has_ipv6 %}
+/routing filter rule remove [find chain={{ peer_identifier }}-v6]
+{% for prefix in prefixes_v6 %}/routing filter rule add chain={{ peer_identifier }}-v6 rule="if (afi ipv6 && dst in {{ prefix }}) { accept; }"
+{% endfor %}/routing filter rule add chain={{ peer_identifier }}-v6 rule="if (afi ipv6) { reject; }"
+{% else %}
+# No IPv6 prefixes returned from IRR for {{ peer.as_set }}
+{% endif %}
+{% if has_ipv4 or has_ipv6 %}
+/routing bgp connection remove [find where name="{{ peer_identifier }}"]
+/routing bgp connection add name="{{ peer_identifier }}" remote-as={{ peer.asn }} {% if peer.neighbor_ipv4 %}remote-address={{ peer.neighbor_ipv4 }}{% elif peer.neighbor_ipv6 %}remote-address={{ peer.neighbor_ipv6 }}{% endif %} {% if has_ipv4 %}in-filter={{ peer_identifier }}-v4 {% endif %}{% if has_ipv6 %}in-filter6={{ peer_identifier }}-v6 {% endif %}comment="{{ peer.name }} (AS{{ peer.asn }})"
+{% if prefix_limit_v4 %}/routing bgp connection set [find where name="{{ peer_identifier }}"] max-prefix-limit={{ prefix_limit_v4 }}
+{% endif %}
+{% if prefix_limit_v6 %}/routing bgp connection set [find where name="{{ peer_identifier }}"] max-prefix-limit-ipv6={{ prefix_limit_v6 }}
+{% endif %}
+{% endif %}

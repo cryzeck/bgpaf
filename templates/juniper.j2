@@ -1,0 +1,56 @@
+# Generated on {{ generated_at }} for {{ peer.name }} (AS{{ peer.asn }})
+{% if peer.peeringdb_name %}# PeeringDB entry: {{ peer.peeringdb_name }}{% endif %}
+policy-options {
+{% if has_ipv4 %}
+    replace: prefix-list {{ prefix_list_v4 }} {
+{% for prefix in prefixes_v4 %}
+        {{ prefix }};
+{% endfor %}
+    }
+{% else %}
+    # No IPv4 prefixes returned from IRR for {{ peer.as_set }}
+{% endif %}
+{% if has_ipv6 %}
+    replace: prefix-list6 {{ prefix_list_v6 }} {
+{% for prefix in prefixes_v6 %}
+        {{ prefix }};
+{% endfor %}
+    }
+{% else %}
+    # No IPv6 prefixes returned from IRR for {{ peer.as_set }}
+{% endif %}
+}
+protocols {
+    bgp {
+        group {{ peer_identifier | upper }} {
+            type external;
+            description "{{ peer.name }} (AS{{ peer.asn }})";
+{% if has_ipv4 and peer.neighbor_ipv4 %}
+            neighbor {{ peer.neighbor_ipv4 }} {
+                family inet {
+{% if prefix_limit_v4 %}
+                    prefix-limit {
+                        maximum {{ prefix_limit_v4 }};
+                    }
+{% endif %}
+                }
+            }
+{% elif has_ipv4 %}
+            # IPv4 neighbor address not provided; prefix-limit {{ prefix_limit_v4 }}
+{% endif %}
+{% if has_ipv6 and peer.neighbor_ipv6 %}
+            neighbor {{ peer.neighbor_ipv6 }} {
+                family inet6 {
+{% if prefix_limit_v6 %}
+                    prefix-limit {
+                        maximum {{ prefix_limit_v6 }};
+                    }
+{% endif %}
+                }
+            }
+{% elif has_ipv6 %}
+            # IPv6 neighbor address not provided; prefix-limit {{ prefix_limit_v6 }}
+{% endif %}
+        }
+    }
+}
