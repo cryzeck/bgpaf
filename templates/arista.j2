@@ -1,0 +1,46 @@
+! Generated on {{ generated_at }} for {{ peer.name }} (AS{{ peer.asn }})
+{% if peer.peeringdb_name %}! PeeringDB entry: {{ peer.peeringdb_name }}{% endif %}
+{% if has_ipv4 %}
+ip prefix-list {{ prefix_list_v4 }} seq 5 permit 0.0.0.0/0 le 32
+no ip prefix-list {{ prefix_list_v4 }}
+{% for prefix in prefixes_v4 %}
+ip prefix-list {{ prefix_list_v4 }} permit {{ prefix }}
+{% endfor %}
+{% else %}
+! No IPv4 prefixes returned from IRR for {{ peer.as_set }}
+{% endif %}
+{% if has_ipv6 %}
+ipv6 prefix-list {{ prefix_list_v6 }} seq 5 permit ::/0 le 128
+no ipv6 prefix-list {{ prefix_list_v6 }}
+{% for prefix in prefixes_v6 %}
+ipv6 prefix-list {{ prefix_list_v6 }} permit {{ prefix }}
+{% endfor %}
+{% else %}
+! No IPv6 prefixes returned from IRR for {{ peer.as_set }}
+{% endif %}
+!
+router bgp <your-local-asn>
+{% if has_ipv4 and peer.neighbor_ipv4 %}
+  neighbor {{ peer.neighbor_ipv4 }} remote-as {{ peer.asn }}
+  neighbor {{ peer.neighbor_ipv4 }} description {{ peer.name }} (AS{{ peer.asn }})
+  neighbor {{ peer.neighbor_ipv4 }} prefix-list {{ prefix_list_v4 }} in
+  address-family ipv4
+{% if prefix_limit_v4 %}
+    neighbor {{ peer.neighbor_ipv4 }} maximum-routes {{ prefix_limit_v4 }}
+{% endif %}
+  exit-address-family
+{% elif has_ipv4 %}
+! IPv4 neighbor address not provided; expected remote-as {{ peer.asn }}
+{% endif %}
+{% if has_ipv6 and peer.neighbor_ipv6 %}
+  neighbor {{ peer.neighbor_ipv6 }} remote-as {{ peer.asn }}
+  neighbor {{ peer.neighbor_ipv6 }} description {{ peer.name }} (AS{{ peer.asn }})
+  neighbor {{ peer.neighbor_ipv6 }} prefix-list {{ prefix_list_v6 }} in
+  address-family ipv6
+{% if prefix_limit_v6 %}
+    neighbor {{ peer.neighbor_ipv6 }} maximum-routes {{ prefix_limit_v6 }}
+{% endif %}
+  exit-address-family
+{% elif has_ipv6 %}
+! IPv6 neighbor address not provided; expected remote-as {{ peer.asn }}
+{% endif %}
